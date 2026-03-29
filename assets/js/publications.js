@@ -6,6 +6,15 @@ document.addEventListener("DOMContentLoaded", () => {
   setupThemeToggle();
 });
 
+function highlightAuthorName(citation) {
+  if (!citation) return "";
+
+  return citation.replace(
+    /\bShahid Abbas\b/g,
+    '<strong class="author-highlight">Shahid Abbas</strong>'
+  );
+}
+
 function renderPublications() {
   const container = document.getElementById("pubsSection");
   if (!container || !Array.isArray(pubData)) return;
@@ -33,15 +42,12 @@ function renderPublications() {
       // Citation text
       const citationDiv = document.createElement("div");
       citationDiv.className = "pub-citation";
-      citationDiv.textContent = pub.citation || "";
+      citationDiv.innerHTML = highlightAuthorName(pub.citation || "");
       li.appendChild(citationDiv);
 
       // Tags row (e.g. Selected)
       const metaDiv = document.createElement("div");
       metaDiv.className = "pub-meta small";
-      if (pub.tags && pub.tags.includes("Selected")) {
-        metaDiv.innerHTML = `<span class="badge">Selected</span>`;
-      }
       li.appendChild(metaDiv);
 
       // Links row
@@ -79,10 +85,10 @@ function renderPublications() {
 /* Theme toggle (same behaviour as main page, inc. system preference) */
 function setupThemeToggle() {
   const body = document.body;
-  const themeToggle = document.getElementById("themeToggle");
-  const themeIcon = document.getElementById("themeIcon");
+  const themeToggles = document.querySelectorAll("[data-theme-toggle]");
+  const themeIcons = document.querySelectorAll("[data-theme-icon]");
 
-  if (!themeToggle || !themeIcon) return;
+  if (!themeToggles.length) return;
 
   // 1) Check if user already chose something
   const storedTheme = localStorage.getItem("theme");
@@ -103,17 +109,23 @@ function setupThemeToggle() {
   // Apply initial theme
   if (isDark) {
     body.classList.add("dark");
-    themeIcon.textContent = "☀️"; // dark now, click to go light
   } else {
     body.classList.remove("dark");
-    themeIcon.textContent = "🌙"; // light now, click to go dark
   }
+  syncThemeIcons(body.classList.contains("dark"), themeIcons);
 
-  // 3) Let user toggle + store preference
-  themeToggle.addEventListener("click", () => {
-    body.classList.toggle("dark");
-    const nowDark = body.classList.contains("dark");
-    themeIcon.textContent = nowDark ? "☀️" : "🌙";
-    localStorage.setItem("theme", nowDark ? "dark" : "light");
+  themeToggles.forEach((toggle) => {
+    toggle.addEventListener("click", () => {
+      body.classList.toggle("dark");
+      const nowDark = body.classList.contains("dark");
+      syncThemeIcons(nowDark, themeIcons);
+      localStorage.setItem("theme", nowDark ? "dark" : "light");
+    });
+  });
+}
+
+function syncThemeIcons(isDark, icons) {
+  icons.forEach((icon) => {
+    icon.textContent = isDark ? "☀️" : "🌙";
   });
 }

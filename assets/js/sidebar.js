@@ -3,13 +3,14 @@
 function initSidebar(mode, siteData) {
   const { profile, contact, profiles } = siteData;
   const sidebar = document.getElementById("sidebar");
+  sidebar.classList.toggle("home-sidebar", mode === "home");
 
   // Basic skeleton: NAV at the top, then header, chips, etc.
 sidebar.innerHTML = `
   <div class="sidebar-top">
     <nav class="nav" id="nav" aria-label="Sidebar navigation"></nav>
-    <button id="themeToggle" class="theme-toggle" type="button">
-      <span id="themeIcon">🌙</span>
+    <button class="theme-toggle" type="button" data-theme-toggle>
+      <span data-theme-icon>🌙</span>
     </button>
   </div>
 
@@ -42,11 +43,11 @@ sidebar.innerHTML = `
   </section>
 
    <footer class="sidebar-footer">
-    © 2025 
+    © 2026 
     <a href="https://www.linkedin.com/in/shahidabbas76/" target="_blank" class="footer-link">
       Shahid Abbas
     </a>. 
-    All rights reserved.
+    Academic profile and publications.
   </footer>
 `;
 
@@ -114,19 +115,16 @@ contact.forEach((item) => {
   const nav = document.getElementById("nav");
 
   if (mode === "home") {
-    // Leave nav empty; main.js will fill section buttons (About, Research, etc.)
-  }
-
-  // If HOME → leave nav empty (main.js will fill section buttons)
-    if (mode !== "home") {
-    // Convert "publications" → "Publications", "grants" → "Grants", etc.
+    nav.innerHTML = `
+      <a href="./"><button type="button" class="active">Home</button></a>
+      <a href="publications.html"><button type="button" class="nav-page-link">Publications</button></a>
+    `;
+  } else {
     const label = mode.charAt(0).toUpperCase() + mode.slice(1);
-
     nav.innerHTML = `
         <a href="./"><button type="button">Home</button></a>
         <button type="button" class="active">${label}</button>
     `;
-    }
-
+  }
 
 }

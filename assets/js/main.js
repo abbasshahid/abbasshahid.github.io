@@ -1,12 +1,14 @@
 // assets/js/main.js 
 
 document.addEventListener("DOMContentLoaded", () => {
+  document.body.classList.add("home-page");
   initSidebar("home", siteData);
-  renderNav(siteData.sections);
+  renderDesktopHeader(siteData.sections);
+  renderHero(siteData.profile, siteData.profiles);
   renderSections(siteData.sections);
   setupThemeToggle();
   setupIntersectionObserver();
-  setupLightbox(); // ✅ add this
+  setupLightbox();
 });
 
 /** Get selected publications from global pubData (from pubs-data.js) */
@@ -37,15 +39,67 @@ function getSelectedPubs(max = 6) {
   return selected.slice(0, max);
 }
 
-function renderNav(sections) {
-  const nav = document.getElementById("nav");
-  nav.innerHTML = ""; // clear, just in case
+function highlightAuthorName(citation) {
+  if (!citation) return "";
+
+  return citation.replace(
+    /\bShahid Abbas\b/g,
+    '<strong class="author-highlight">Shahid Abbas</strong>'
+  );
+}
+
+function renderPublicationLinks(pub) {
+  const links = [];
+
+  if (pub.pubUrl) {
+    links.push(
+      `<a href="${pub.pubUrl}" target="_blank" rel="noreferrer">Publisher</a>`
+    );
+  }
+  if (pub.pdfUrl) {
+    links.push(
+      `<a href="${pub.pdfUrl}" target="_blank" rel="noreferrer">PDF</a>`
+    );
+  }
+  if (pub.codeUrl) {
+    links.push(
+      `<a href="${pub.codeUrl}" target="_blank" rel="noreferrer">Code</a>`
+    );
+  }
+
+  if (!links.length) return "";
+
+  return `<div class="small pub-links">${links.join(" · ")}</div>`;
+}
+
+function renderDesktopHeader(sections) {
+  const layout = document.querySelector(".layout");
+  if (!layout) return;
+
+  const header = document.createElement("header");
+  header.className = "site-header";
+  header.innerHTML = `
+    <div class="site-header-inner">
+      <nav class="nav desktop-nav" id="desktopNav" aria-label="Primary navigation"></nav>
+      <button class="theme-toggle" type="button" data-theme-toggle>
+        <span data-theme-icon>🌙</span>
+      </button>
+    </div>
+  `;
+
+  document.body.insertBefore(header, layout);
+
+  const nav = document.getElementById("desktopNav");
+  if (!nav) return;
 
   sections.forEach((sec, idx) => {
     const btn = document.createElement("button");
     btn.textContent = sec.navLabel;
     btn.dataset.target = sec.id;
     btn.type = "button";
+    if (sec.id === "publications") {
+      btn.classList.add("nav-page-link");
+    }
 
     if (idx === 0) btn.classList.add("active");
 
@@ -65,6 +119,31 @@ function renderNav(sections) {
 
     nav.appendChild(btn);
   });
+}
+
+function renderHero(profile, profiles) {
+  const content = document.getElementById("content");
+  if (!content || !profile) return;
+
+  const scholarLink =
+    (profiles || []).find((item) => item.name === "Google Scholar")?.url || "#";
+  const cvLink = (profiles || []).find((item) => item.name === "CV")?.url || "#";
+
+  const hero = document.createElement("section");
+  hero.className = "hero";
+  hero.innerHTML = `
+    <div class="hero-copy">
+      <span class="eyebrow">Academic Profile</span>
+      <h1 class="hero-title">${profile.headline || profile.title}</h1>
+      <p class="hero-summary">${profile.summary || ""}</p>
+      <div class="hero-actions">
+        <a class="button-primary" href="${cvLink}" target="_blank" rel="noreferrer">View CV</a>
+        <a class="button-secondary" href="${scholarLink}" target="_blank" rel="noreferrer">Google Scholar</a>
+      </div>
+    </div>
+  `;
+
+  content.appendChild(hero);
 }
 
 function renderSections(sections) {
@@ -187,15 +266,11 @@ function renderSections(sections) {
       } else {
         selectedPubs.forEach((pub) => {
           const li = document.createElement("li");
+          li.className = "pub-item";
           li.innerHTML = `
-            <div class="pub-title">${pub.citation}</div>
-            <div class="pub-meta small">
-              Year: ${pub.year}${
-                pub.tags && pub.tags.includes("Selected")
-                  ? ' · <span class="badge">Selected</span>'
-                  : ""
-              }
-            </div>
+            <div class="pub-title">${highlightAuthorName(pub.citation)}</div>
+            ${renderPublicationLinks(pub)}
+            <div class="pub-meta small">Year: ${pub.year}</div>
           `;
           ul.appendChild(li);
         });
@@ -204,43 +279,18 @@ function renderSections(sections) {
       sectionEl.appendChild(ul);
     }
 
-    // --- DIAGRAMS SECTION (new last section) ---
-    if (sec.type === "diagrams") {
+    if (sec.type === "cards") {
       const grid = document.createElement("div");
-      grid.className = "diagram-grid";
+      grid.className = "cards-grid";
 
-      sec.boxes.forEach((box) => {
-        const boxEl = document.createElement("article");
-        boxEl.className = "diagram-box";
-
-        const h4 = document.createElement("h4");
-        h4.textContent = box.heading;
-        boxEl.appendChild(h4);
-
-        if (box.img) {
-          const imgWrap = document.createElement("div");
-          imgWrap.className = "diagram-img-wrap";
-
-          const img = document.createElement("img");
-          img.src = box.img;
-          img.alt = box.heading;
-          imgWrap.appendChild(img);
-
-          boxEl.appendChild(imgWrap);
-        } else {
-          const placeholder = document.createElement("div");
-          placeholder.className = "diagram-placeholder";
-          placeholder.textContent = "Diagram goes here";
-          boxEl.appendChild(placeholder);
-        }
-
-        if (box.text) {
-          const p = document.createElement("p");
-          p.textContent = box.text;
-          boxEl.appendChild(p);
-        }
-
-        grid.appendChild(boxEl);
+      sec.items.forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "info-card";
+        card.innerHTML = `
+          <h3>${item.title}</h3>
+          <p>${item.text}</p>
+        `;
+        grid.appendChild(card);
       });
 
       sectionEl.appendChild(grid);
@@ -254,8 +304,10 @@ function renderSections(sections) {
 /* Theme toggle with localStorage */
 function setupThemeToggle() {
   const body = document.body;
-  const themeToggle = document.getElementById("themeToggle");
-  const themeIcon = document.getElementById("themeIcon");
+  const themeToggles = document.querySelectorAll("[data-theme-toggle]");
+  const themeIcons = document.querySelectorAll("[data-theme-icon]");
+
+  if (!themeToggles.length) return;
 
   // 1) Check if user already chose something
   const storedTheme = localStorage.getItem("theme");
@@ -275,18 +327,25 @@ function setupThemeToggle() {
   // Apply initial theme
   if (isDark) {
     body.classList.add("dark");
-    themeIcon.textContent = "☀️"; // sun = currently dark, click for light
   } else {
     body.classList.remove("dark");
-    themeIcon.textContent = "🌙"; // moon = currently light, click for dark
   }
 
-  // 3) Let user toggle + store preference
-  themeToggle.addEventListener("click", () => {
-    body.classList.toggle("dark");
-    const nowDark = body.classList.contains("dark");
-    themeIcon.textContent = nowDark ? "☀️" : "🌙";
-    localStorage.setItem("theme", nowDark ? "dark" : "light");
+  syncThemeIcons(body.classList.contains("dark"), themeIcons);
+
+  themeToggles.forEach((toggle) => {
+    toggle.addEventListener("click", () => {
+      body.classList.toggle("dark");
+      const nowDark = body.classList.contains("dark");
+      syncThemeIcons(nowDark, themeIcons);
+      localStorage.setItem("theme", nowDark ? "dark" : "light");
+    });
+  });
+}
+
+function syncThemeIcons(isDark, icons) {
+  icons.forEach((icon) => {
+    icon.textContent = isDark ? "☀️" : "🌙";
   });
 }
 
@@ -294,7 +353,7 @@ function setupThemeToggle() {
 /* Active nav on scroll */
 function setupIntersectionObserver() {
   const sections = document.querySelectorAll(".section");
-  const navButtons = document.querySelectorAll(".nav button");
+  const navButtons = document.querySelectorAll(".desktop-nav button[data-target]");
 
   const observer = new IntersectionObserver(
     (entries) => {
